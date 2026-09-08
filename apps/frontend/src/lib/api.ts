@@ -3891,6 +3891,12 @@ export interface PrintImportVariantTier {
   unitPriceEur: number;
 }
 
+export interface PrintImportVariantFinishOption {
+  name: string;
+  sku?: string | null;
+  priceDeltaEur?: number | null;
+}
+
 export interface PrintImportVariant {
   name: string;
   widthMm?: number | null;
@@ -3900,6 +3906,7 @@ export interface PrintImportVariant {
   priceEur?: number | null;
   costEur?: number | null;
   priceTiers?: PrintImportVariantTier[];
+  finishOptions?: PrintImportVariantFinishOption[];
 }
 
 export interface PrintImportProduct {
