@@ -3407,6 +3407,7 @@ export const api = {
       trackingCarrier?: string;
       trackingUrl?: string;
       reason?: string;
+      paymentReference?: string;
     }
   ) =>
     request<{ ok: true }>(`/print-shop/orders/${id}/transitions`, {
@@ -3765,6 +3766,7 @@ export interface PrintOrderDetail {
   paymentMode: string;
   stripePaymentIntentId: string | null;
   stripeChargeId: string | null;
+  paymentReference: string | null;
   subtotalCents: number;
   shippingCents: number;
   taxCents: number;
