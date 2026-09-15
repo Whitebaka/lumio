@@ -1036,6 +1036,7 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
         tenantId: ctx.tenantId,
         galleryId: order.galleryId,
         accessId: null,
+        source: "studio",
         fileIds,
         label: `print_order_${order.orderNumber}`,
       });
