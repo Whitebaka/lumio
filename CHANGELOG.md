@@ -39,6 +39,10 @@ A pull is enough — the database migrates automatically on start. Only the main
 - Print shop: select several photos at once and add them to the cart in one step, with the tier preview reflecting the whole selection. Thanks to @manuzzi (#39/#40).
 - Print shop: download all photos of an order as a ZIP, plus a Markdown order summary alongside the existing CSV. Thanks to @manuzzi (#43/#44).
 
+### Fixed
+
+- **A fresh install could not start.** `docker compose up` pulled MinIO from Docker Hub, and MinIO has since closed anonymous access to `minio/minio` and `minio/mc` there — the pull now fails with a 401, before anything else runs. Both images now come from `quay.io/minio/…`, where MinIO keeps `latest` maintained and which has no Docker Hub rate limit to hit. Existing installations keep running on their cached images either way; a pull picks up the new source. If you run your own S3 (Hetzner, R2, …) and have the MinIO service commented out, nothing changes for you.
+
 ### Security
 
 - A ZIP built by the studio (tag export, print-order bundle) could be fetched through the customer route, because both kinds of record looked identical once the gallery was public. This included original files in a gallery where original downloads are switched off for customers. ZIP records now record who built them, and the customer route serves only customer-built ones. It also re-checks the gallery's current download settings when serving, not just when building. Reported as #45, fixed by @manuzzi (#52).
