@@ -29,6 +29,21 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-09-16
+
+A pull is enough — the database migrates automatically on start. Only the main server is affected.
+
+### Added
+
+- Print shop: bulk catalog import with tiered pricing. A lab's price list can be imported in one go, including quantity breaks, and the cost side carries its own tiers so the margin shown to the studio stays right at volume. Thanks to @manuzzi (#33/#34).
+- Print shop: select several photos at once and add them to the cart in one step, with the tier preview reflecting the whole selection. Thanks to @manuzzi (#39/#40).
+- Print shop: download all photos of an order as a ZIP, plus a Markdown order summary alongside the existing CSV. Thanks to @manuzzi (#43/#44).
+
+### Security
+
+- A ZIP built by the studio (tag export, print-order bundle) could be fetched through the customer route, because both kinds of record looked identical once the gallery was public. This included original files in a gallery where original downloads are switched off for customers. ZIP records now record who built them, and the customer route serves only customer-built ones. It also re-checks the gallery's current download settings when serving, not just when building. Reported as #45, fixed by @manuzzi (#52).
+- Removed a unique index on `zip_downloads` that has been sitting there unused since May. It was meant to be replaced back then, but the migration tried to drop it as a table constraint while it had been created as an index, so the drop silently did nothing. Left in place it would have kept enforcing uniqueness without `variant` or `source` — two legitimate ZIPs differing only in those would have collided instead of coexisting.
+
 ## [0.75.4] - 2026-09-11
 
 A pull is enough. Only the main server is affected.
