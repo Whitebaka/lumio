@@ -29,6 +29,11 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+### Fixed
+
+- A client gallery containing exactly one file said "1 FILES" in the header. The count now picks the singular or plural wording, the way the rest of the interface already does. The German wording for it was also still the English "Files", and the Finnish was in a form that does not follow a number, so both are corrected. Thanks to @bradley-varol (#51).
+- An expiry date on a gallery could not be removed once set — `PATCH` with `expiresAt: null` was rejected before the handler ran, although clearing was always what the handler intended. Nullable on update now; create is unchanged. Thanks to @bradley-varol (#50).
+
 ## [0.76.0] - 2026-09-16
 
 A pull is enough — the database migrates automatically on start. Only the main server is affected.
