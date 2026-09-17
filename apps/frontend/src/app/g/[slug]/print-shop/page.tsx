@@ -434,7 +434,22 @@ function PickerDialog({
         product: selectedProduct,
         variant: selectedVariant,
         quantity,
-        crop: cropActive ? crop : null,
+        // Im Bulk-Modus ist der Crop-Editor aus (N verschieden gerahmte
+        // Bilder in einem Dialog waeren nicht bedienbar) — aber die
+        // Zeile darf trotzdem nicht ohne Crop rausgehen: seit v0.78.0
+        // rendert der Worker nur Zeilen MIT Crop, alles andere landet
+        // als _UNCROPPED-Original im Druck-ZIP. Eine Bestellung haette
+        // sonst halb geschnittene, halb ungeschnittene Dateien.
+        //
+        // Also pro Datei denselben zentrierten Default berechnen, den
+        // der Einzel-Modus als Startwert zeigt — aus den Massen DIESES
+        // Bildes, nicht aus denen des zuerst angeklickten. Wer einen
+        // eigenen Ausschnitt will, bestellt das Bild einzeln.
+        crop: cropActive
+          ? crop
+          : selectedVariant.aspectRatio && f.width && f.height
+          ? defaultCropForAspect(f.width, f.height, selectedVariant.aspectRatio)
+          : null,
         finishOptionId: selectedFinishOption?.id ?? null,
         finishOptionName: selectedFinishOption?.name ?? null,
       }))
@@ -461,6 +476,11 @@ function PickerDialog({
       <div className="bg-surface-raised rounded-md max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="grid sm:grid-cols-2 gap-0">
           <div className="bg-black flex items-center justify-center p-2 sm:p-3">
+            {bulk && selectedVariant?.aspectRatio ? (
+              <p className="text-ui-xs text-ink-tertiary mb-2">
+                {t("printShop.bulkCropNote")}
+              </p>
+            ) : null}
             {bulk ? (
               <div className="grid grid-cols-3 gap-1.5 max-h-[360px] overflow-y-auto p-1">
                 {files.map((f) => (

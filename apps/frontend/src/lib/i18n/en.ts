@@ -1128,6 +1128,7 @@ export const en = {
   },
 
   printShop: {
+    bulkCropNote: "Photos will be cropped to the centre of this format automatically. To choose the crop yourself, order that photo on its own.",
     cart: "Cart ({count})",
     cartButtonArrow: "← Select images",
     continueShopping: "← Continue shopping",

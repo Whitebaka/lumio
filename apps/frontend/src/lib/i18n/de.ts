@@ -1138,6 +1138,7 @@ export const de: LocaleDict = {
   },
 
   printShop: {
+    bulkCropNote: "Die Bilder werden automatisch mittig auf dieses Format zugeschnitten. Für einen eigenen Ausschnitt das Bild einzeln bestellen.",
     cart: "Warenkorb ({count})",
     cartButtonArrow: "← Bilder auswählen",
     continueShopping: "← Weiter shoppen",

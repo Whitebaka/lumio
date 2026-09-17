@@ -1129,6 +1129,7 @@ export const fi = {
   },
 
   printShop: {
+    bulkCropNote: "Kuvat rajataan automaattisesti keskeltä tähän kokoon. Jos haluat valita rajauksen itse, tilaa kuva erikseen.",
     cart: "Ostoskori ({count})",
     cartButtonArrow: "← Valitse kuvat",
     continueShopping: "← Jatka ostoksia",

@@ -1136,6 +1136,7 @@ export const it: LocaleDict = {
   },
 
   printShop: {
+    bulkCropNote: "Le foto vengono ritagliate automaticamente al centro di questo formato. Per scegliere il ritaglio, ordina la foto singolarmente.",
     cart: "Carrello ({count})",
     cartButtonArrow: "← Seleziona immagini",
     continueShopping: "← Continua lo shopping",
