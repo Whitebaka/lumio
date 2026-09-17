@@ -451,7 +451,7 @@ export async function transitionOrder(
     )
   ) {
     throw new Error(
-      "paymentReference is required to mark an offline_invoice order as paid"
+      "paymentReference erforderlich, um eine offline_invoice-Bestellung als bezahlt zu markieren"
     );
   }
 
