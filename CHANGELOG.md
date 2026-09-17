@@ -29,6 +29,23 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+## [0.77.1] - 2026-09-17
+
+A pull is enough. Only the main server is affected. **One visible change:** the shape of error bodies from `/api/v1` — see the note below.
+
+### Fixed
+
+- Sending a value the API rejects — a title over the length limit, an unknown status, a malformed date — answered **500 Internal Server Error** instead of 400, and put the raw validation output in the response message. It now answers 400 with the field, the reason and a stable shape. Anything written against those endpoints could not previously tell a bad request from a broken server.
+- The cause was wider than the status code. The error handler sat below the route registrations in `server.ts`, and a Fastify error handler is only inherited by parts of the app created after it is set, so **nothing in it ran for any `/api/v1` request** — including the validation branch that was already there. It is now set before the routes, so it applies. Thanks to @bradley-varol (#54).
+
+### Security
+
+- Because the handler never ran, genuine server faults were answered with Fastify's default body, which includes the exception's own message. Database and library errors can carry table names, column names and file paths, and those went to the client. Faults now answer with a fixed "Internal server error" and nothing else, as the handler always intended.
+
+### ⚠️ Upgrade notes
+
+- **Error responses from `/api/v1` change shape.** They were being formatted by Fastify's default, which included a `statusCode` field in the body. They now use the intended format: `{"error": ..., "message": ...}`, plus `details` for validation failures. HTTP status codes are unchanged, and were always the reliable signal. If you have written anything that reads `statusCode` out of an error *body*, read the HTTP status instead. The `error` field also now carries the exception name, so for example an unauthorised request reports `UnauthorizedError` rather than `Unauthorized`. The Lumio frontend itself is unaffected — it matches on its own application codes, which don't pass through this handler.
+
 ## [0.77.0] - 2026-09-17
 
 A pull is enough — the database migrates automatically on start. Only the main server is affected.
