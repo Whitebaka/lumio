@@ -330,7 +330,10 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
       include: {
         variants: {
           orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
-          include: { priceTiers: { orderBy: { minQty: "asc" } } },
+          include: {
+            priceTiers: { orderBy: { minQty: "asc" } },
+            finishOptions: { orderBy: { displayOrder: "asc" } },
+          },
         },
       },
     });
@@ -438,6 +441,15 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
     unitCostCents: z.number().int().min(0).nullable().optional(),
   });
 
+  // Selectable variant options (e.g. frame color) — distinct from the
+  // scalar finishType field, see the schema comment on
+  // PrintProductVariantFinishOption for why they're a separate concept.
+  const finishOptionInputSchema = z.object({
+    name: z.string().min(1).max(100),
+    sku: z.string().max(200).nullable().optional(),
+    priceDeltaCents: z.number().int().default(0),
+  });
+
   const variantCreateSchema = z.object({
     name: z.string().min(1).max(200),
     widthMm: z.number().int().min(1).max(10000),
@@ -455,7 +467,25 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
     // Absent = flat pricing. Present (even empty, on an update) = the
     // client is explicitly setting the tier ladder for this variant.
     priceTiers: z.array(priceTierInputSchema).max(20).optional(),
+    // Absent = no selectable finish options. Present (even empty, on an
+    // update) = the client is explicitly setting the finish-option list.
+    finishOptions: z.array(finishOptionInputSchema).max(20).optional(),
   });
+
+  /** Duplicate finish-option names within one request would violate the
+   *  @@unique([printProductVariantId, name]) constraint at write time —
+   *  checked here first for a clear 400 instead of a raw Prisma error. */
+  function findDuplicateFinishOptionName(
+    finishOptions: Array<{ name: string }>
+  ): string | null {
+    const seen = new Set<string>();
+    for (const fo of finishOptions) {
+      const trimmed = fo.name.trim();
+      if (seen.has(trimmed)) return trimmed;
+      seen.add(trimmed);
+    }
+    return null;
+  }
   app.post<{ Params: { id: string } }>(
     "/print-shop/products/:id/variants",
     async (req, reply) => {
@@ -469,7 +499,7 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
       });
       if (!product) return reply.status(404).send({ error: "not_found" });
 
-      const { priceTiers, ...rest } = body;
+      const { priceTiers, finishOptions, ...rest } = body;
       let sortedTiers: PriceTierInput[] | null = null;
       let priceCents = rest.priceCents;
       let costCents = rest.costCents;
@@ -493,6 +523,16 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
         }
       }
 
+      if (finishOptions && finishOptions.length > 0) {
+        const dup = findDuplicateFinishOptionName(finishOptions);
+        if (dup) {
+          return reply.status(400).send({
+            error: "duplicate_finish_option_name",
+            message: `Finish option name "${dup}" is used more than once.`,
+          });
+        }
+      }
+
       const variant = await prisma.printProductVariant.create({
         data: {
           printProductId: req.params.id,
@@ -511,8 +551,23 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
                 },
               }
             : {}),
+          ...(finishOptions && finishOptions.length > 0
+            ? {
+                finishOptions: {
+                  create: finishOptions.map((fo, idx) => ({
+                    name: fo.name.trim(),
+                    sku: fo.sku?.trim() || null,
+                    priceDeltaCents: fo.priceDeltaCents,
+                    displayOrder: idx,
+                  })),
+                },
+              }
+            : {}),
         },
-        include: { priceTiers: { orderBy: { minQty: "asc" } } },
+        include: {
+          priceTiers: { orderBy: { minQty: "asc" } },
+          finishOptions: { orderBy: { displayOrder: "asc" } },
+        },
       });
       return { variant };
     }
@@ -535,8 +590,29 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
       });
       if (!variant) return reply.status(404).send({ error: "not_found" });
 
-      const { priceTiers, ...rest } = body;
+      const { priceTiers, finishOptions, ...rest } = body;
       const data: Record<string, unknown> = { ...rest };
+
+      if (finishOptions !== undefined) {
+        if (finishOptions.length > 0) {
+          const dup = findDuplicateFinishOptionName(finishOptions);
+          if (dup) {
+            return reply.status(400).send({
+              error: "duplicate_finish_option_name",
+              message: `Finish option name "${dup}" is used more than once.`,
+            });
+          }
+        }
+        data.finishOptions = {
+          deleteMany: {},
+          create: finishOptions.map((fo, idx) => ({
+            name: fo.name.trim(),
+            sku: fo.sku?.trim() || null,
+            priceDeltaCents: fo.priceDeltaCents,
+            displayOrder: idx,
+          })),
+        };
+      }
 
       if (priceTiers !== undefined) {
         if (priceTiers.length > 0) {
@@ -583,7 +659,10 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
       const updated = await prisma.printProductVariant.update({
         where: { id: req.params.id },
         data,
-        include: { priceTiers: { orderBy: { minQty: "asc" } } },
+        include: {
+          priceTiers: { orderBy: { minQty: "asc" } },
+          finishOptions: { orderBy: { displayOrder: "asc" } },
+        },
       });
       return { variant: updated };
     }
@@ -641,6 +720,14 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
     unitPriceEur: z.number(),
     costEur: z.number().nullable().optional(),
   });
+  // .max(20) matches the manual variant editor's cap (MAX_FINISH_OPTIONS
+  // in products/page.tsx) and priceTierInputSchema's own .max(20) below —
+  // an import can't create a variant the Studio editor couldn't then open.
+  const importFinishOptionSchema = z.object({
+    name: z.string(),
+    sku: z.string().nullable().optional(),
+    priceDeltaEur: z.number().nullable().optional(),
+  });
   const importVariantSchema = z.object({
     name: z.string(),
     widthMm: z.number().nullable().optional(),
@@ -650,6 +737,7 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
     priceEur: z.number().nullable().optional(),
     costEur: z.number().nullable().optional(),
     priceTiers: z.array(importTierSchema).optional(),
+    finishOptions: z.array(importFinishOptionSchema).max(20).optional(),
   });
   const importProductSchema = z.object({
     name: z.string(),
@@ -888,6 +976,8 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
               quantity: true,
               unitPriceCents: true,
               totalPriceCents: true,
+              finishOptionName: true,
+              finishOptionSku: true,
               printProductVariant: {
                 select: {
                   name: true,
@@ -911,9 +1001,13 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
         variantName: it.printProductVariant.name,
         widthMm: it.printProductVariant.widthMm,
         heightMm: it.printProductVariant.heightMm,
-        // Variant SKU is the specific one; fall back to the product's
-        // SKU (e.g. a bulk-imported family sharing one provider ref).
+        finishName: it.finishOptionName,
+        // Finish SKU (if the selected finish has its own) takes priority
+        // over the variant's — same reasoning a differently-stocked frame
+        // color needs its own line for invoicing. Then variant, then
+        // product (e.g. a bulk-imported family sharing one provider ref).
         sku:
+          it.finishOptionSku ??
           it.printProductVariant.providerVariantRef ??
           it.printProductVariant.printProduct.providerProductRef ??
           null,
@@ -966,6 +1060,8 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
               quantity: true,
               unitPriceCents: true,
               totalPriceCents: true,
+              finishOptionName: true,
+              finishOptionSku: true,
               printProductVariant: {
                 select: {
                   name: true,
@@ -989,7 +1085,9 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
         variantName: it.printProductVariant.name,
         widthMm: it.printProductVariant.widthMm,
         heightMm: it.printProductVariant.heightMm,
+        finishName: it.finishOptionName,
         sku:
+          it.finishOptionSku ??
           it.printProductVariant.providerVariantRef ??
           it.printProductVariant.printProduct.providerProductRef ??
           null,
