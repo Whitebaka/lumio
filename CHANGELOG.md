@@ -29,6 +29,15 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+### Fixed
+
+- Sending a value the API rejects — a title over the length limit, an unknown status, a malformed date — answered **500 Internal Server Error** instead of 400, and put the raw validation output in the response message. It now answers 400 with the field, the reason and a stable shape. Anything written against those endpoints could not previously tell a bad request from a broken server.
+- The cause was wider than the status code. The error handler sat below the route registrations in `server.ts`, and a Fastify error handler is only inherited by parts of the app created after it is set, so **nothing in it ran for any `/api/v1` request** — including the validation branch that was already there. It is now set before the routes, so it applies.
+
+### ⚠️ Upgrade notes
+
+- **Error responses from `/api/v1` change shape.** Because the handler above never ran, errors were being formatted by Fastify's default, which included a `statusCode` field in the body. They now use the intended format: `{"error": ..., "message": ...}`, plus `details` for validation failures. HTTP status codes are unchanged, and were always the reliable signal. If you have written anything that reads `statusCode` out of an error *body*, read the HTTP status instead. The `error` field also now carries the exception name, so for example an unauthorised request reports `UnauthorizedError` rather than `Unauthorized`.
+
 ## [0.76.1] - 2026-09-16
 
 A pull is enough. Only the main server is affected.
