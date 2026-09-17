@@ -2153,6 +2153,8 @@ export const en = {
     trackingUrl: "Tracking URL",
     secItems: "Items ({n})",
     imageLabel: "Image:",
+    cropLabel: "Crop:",
+    cropNotApplied: "not applied to the file — crop before printing",
     downloadCsv: "Download CSV",
     downloadMd: "Download summary",
     downloadZip: "Download all photos",

@@ -2162,6 +2162,8 @@ export const it: LocaleDict = {
     trackingUrl: "URL di tracciamento",
     secItems: "Articoli ({n})",
     imageLabel: "Immagine:",
+    cropLabel: "Ritaglio:",
+    cropNotApplied: "non applicato al file — ritagliare prima della stampa",
     downloadCsv: "Scarica CSV",
     downloadMd: "Scarica riepilogo",
     downloadZip: "Scarica tutte le foto",

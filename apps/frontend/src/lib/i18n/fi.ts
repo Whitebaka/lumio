@@ -2155,6 +2155,8 @@ export const fi = {
     trackingUrl: "Seurantalinkki",
     secItems: "Tuotteet ({n})",
     imageLabel: "Kuva:",
+    cropLabel: "Rajaus:",
+    cropNotApplied: "ei sovellettu tiedostoon — rajaa ennen tulostusta",
     downloadCsv: "Lataa CSV",
     downloadMd: "Lataa yhteenveto",
     downloadZip: "Lataa kaikki kuvat",

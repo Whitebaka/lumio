@@ -61,6 +61,7 @@ import {
   type OrderExportRow,
 } from "../services/print/order-export.js";
 import { requestZipDownload } from "../services/zip.js";
+import { presignGet } from "../services/storage.js";
 import {
   validateTierLadder,
   deriveReferencePriceCents,
@@ -944,7 +945,22 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
                 include: { printProduct: { select: { name: true } } },
               },
               file: {
-                select: { id: true, originalFilename: true, sha256: true },
+                select: {
+                  id: true,
+                  originalFilename: true,
+                  sha256: true,
+                  // Fuer die Crop-Anzeige in der Bestellansicht: das Studio
+                  // muss sehen, welchen Ausschnitt der Kunde gewaehlt hat
+                  // (#55). Bildmasse, damit die normierten Crop-Werte in
+                  // Pixel umgerechnet werden koennen, und die web-Rendition
+                  // als Vorschau, ueber die das Rechteck gezeichnet wird.
+                  width: true,
+                  height: true,
+                  renditions: {
+                    where: { kind: { in: ["web", "preview"] }, page: 0 },
+                    select: { kind: true, storageKey: true },
+                  },
+                },
               },
             },
           },
@@ -954,7 +970,19 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
         },
       });
       if (!order) return reply.status(404).send({ error: "not_found" });
-      return { order };
+      // Renditions gegen eine signierte Vorschau-URL tauschen — die
+      // storageKeys selbst gehoeren nicht ins Frontend.
+      const items = await Promise.all(
+        order.items.map(async (it) => {
+          const { renditions, ...file } = it.file;
+          const pick =
+            renditions.find((r) => r.kind === "web") ??
+            renditions.find((r) => r.kind === "preview");
+          const previewUrl = pick ? await presignGet({ key: pick.storageKey }) : null;
+          return { ...it, file: { ...file, previewUrl } };
+        })
+      );
+      return { order: { ...order, items } };
     }
   );
 
@@ -978,6 +1006,7 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
               totalPriceCents: true,
               finishOptionName: true,
               finishOptionSku: true,
+              crop: true,
               printProductVariant: {
                 select: {
                   name: true,
@@ -987,7 +1016,9 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
                   printProduct: { select: { name: true, providerProductRef: true } },
                 },
               },
-              file: { select: { id: true, originalFilename: true } },
+              file: {
+                select: { id: true, originalFilename: true, width: true, height: true },
+              },
             },
           },
         },
@@ -1002,6 +1033,9 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
         widthMm: it.printProductVariant.widthMm,
         heightMm: it.printProductVariant.heightMm,
         finishName: it.finishOptionName,
+        crop: (it.crop as OrderExportRow["crop"]) ?? null,
+        imageWidth: it.file.width ?? null,
+        imageHeight: it.file.height ?? null,
         // Finish SKU (if the selected finish has its own) takes priority
         // over the variant's — same reasoning a differently-stocked frame
         // color needs its own line for invoicing. Then variant, then
@@ -1062,6 +1096,7 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
               totalPriceCents: true,
               finishOptionName: true,
               finishOptionSku: true,
+              crop: true,
               printProductVariant: {
                 select: {
                   name: true,
@@ -1071,7 +1106,9 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
                   printProduct: { select: { name: true, providerProductRef: true } },
                 },
               },
-              file: { select: { id: true, originalFilename: true } },
+              file: {
+                select: { id: true, originalFilename: true, width: true, height: true },
+              },
             },
           },
         },
@@ -1086,6 +1123,9 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
         widthMm: it.printProductVariant.widthMm,
         heightMm: it.printProductVariant.heightMm,
         finishName: it.finishOptionName,
+        crop: (it.crop as OrderExportRow["crop"]) ?? null,
+        imageWidth: it.file.width ?? null,
+        imageHeight: it.file.height ?? null,
         sku:
           it.finishOptionSku ??
           it.printProductVariant.providerVariantRef ??

@@ -387,6 +387,28 @@ export default function OrderDetailPage({
         <ul className="divide-y divide-line-subtle">
           {order.items.map((it) => (
             <li key={it.id} className="py-2 flex items-center gap-3 flex-wrap">
+              {/* Vorschau mit dem vom Kunden gewaehlten Ausschnitt (#55).
+                  Bis eine zugeschnittene Datei erzeugt wird, ist das der
+                  einzige Ort, an dem das Studio den Crop ueberhaupt sieht —
+                  vorher war er gespeichert, aber nirgends sichtbar, und
+                  der Download darunter liefert das ungeschnittene Original. */}
+              {it.file.previewUrl && (
+                <div className="relative shrink-0 w-24 h-24 bg-surface-sunken rounded-xs overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={it.file.previewUrl}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-contain"
+                  />
+                  {it.crop && (
+                    <CropOverlay
+                      crop={it.crop}
+                      imageWidth={it.file.width}
+                      imageHeight={it.file.height}
+                    />
+                  )}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm">
                   <strong>
@@ -410,6 +432,16 @@ export default function OrderDetailPage({
                     {it.file.originalFilename}
                   </a>
                 </div>
+                {it.crop && (
+                  <div className="text-xs text-ink-tertiary mt-0.5">
+                    {t("orderDetail.cropLabel")}{" "}
+                    <span className="font-mono">
+                      {formatCropText(it.crop, it.file.width, it.file.height)}
+                    </span>
+                    {" · "}
+                    <span className="text-semantic-warning">{t("orderDetail.cropNotApplied")}</span>
+                  </div>
+                )}
               </div>
               <div className="text-sm tabular-nums">
                 {formatPrice(fmt, it.totalPriceCents, order.currency)}
@@ -741,4 +773,70 @@ function actorLabel(a: string): string {
     default:
       return a;
   }
+}
+
+
+/**
+ * Zeichnet das Crop-Rechteck ueber ein object-contain-Bild. Die Crop-
+ * Werte sind auf das BILD normiert, das Bild fuellt den Container aber
+ * nur in einer Achse — darum erst die Letterbox-Offsets berechnen und
+ * dann das Rechteck in den tatsaechlichen Bildbereich legen. Ohne das
+ * saesse das Rechteck bei einem Hochformat-Foto im leeren Rand.
+ */
+function CropOverlay({
+  crop,
+  imageWidth,
+  imageHeight,
+}: {
+  crop: { x: number; y: number; width: number; height: number };
+  imageWidth: number | null;
+  imageHeight: number | null;
+}) {
+  // Ohne Bildmasse kennen wir das Letterboxing nicht — dann lieber das
+  // Rechteck relativ zum Container zeigen als gar nichts.
+  let left = crop.x, top = crop.y, w = crop.width, h = crop.height;
+  if (imageWidth && imageHeight) {
+    const ratio = imageWidth / imageHeight;
+    // Container ist quadratisch (w-24 h-24).
+    const drawnW = ratio >= 1 ? 1 : ratio;
+    const drawnH = ratio >= 1 ? 1 / ratio : 1;
+    const offX = (1 - drawnW) / 2;
+    const offY = (1 - drawnH) / 2;
+    left = offX + crop.x * drawnW;
+    top = offY + crop.y * drawnH;
+    w = crop.width * drawnW;
+    h = crop.height * drawnH;
+  }
+  return (
+    <div
+      aria-hidden="true"
+      className="absolute border-2 border-accent pointer-events-none"
+      style={{
+        left: `${left * 100}%`,
+        top: `${top * 100}%`,
+        width: `${w * 100}%`,
+        height: `${h * 100}%`,
+        boxShadow: "0 0 0 9999px rgba(0,0,0,0.45)",
+      }}
+    />
+  );
+}
+
+/** Crop als Text — Pixel wenn die Bildmasse bekannt sind, sonst Prozent.
+ *  Spiegelt formatCrop() im API-Export, damit Bildschirm und PDF/MD
+ *  dieselben Zahlen zeigen. */
+function formatCropText(
+  crop: { x: number; y: number; width: number; height: number },
+  imageWidth: number | null,
+  imageHeight: number | null
+): string {
+  if (imageWidth && imageHeight) {
+    const x = Math.round(crop.x * imageWidth);
+    const y = Math.round(crop.y * imageHeight);
+    const w = Math.round(crop.width * imageWidth);
+    const h = Math.round(crop.height * imageHeight);
+    return `${w}×${h} px @ ${x},${y}`;
+  }
+  const p = (v: number) => `${Math.round(v * 100)}%`;
+  return `${p(crop.width)}×${p(crop.height)} @ ${p(crop.x)},${p(crop.y)}`;
 }

@@ -24,6 +24,39 @@ export interface OrderExportRow {
   quantity: number;
   unitPriceCents: number;
   totalPriceCents: number;
+  /** Vom Kunden gewaehlter Ausschnitt, normiert auf [0..1] relativ zum
+   *  Originalbild. null = kein Zuschnitt gewaehlt (Bulk-Zeilen, siehe #53,
+   *  oder Variante ohne festes Seitenverhaeltnis). */
+  crop: { x: number; y: number; width: number; height: number } | null;
+  /** Pixelmasse des Originals, um den Crop absolut auszudruecken. */
+  imageWidth: number | null;
+  imageHeight: number | null;
+}
+
+/**
+ * Crop als lesbarer Text fuer den Export. Bis eine zugeschnittene
+ * Rendition erzeugt wird (#55, Stufe 2), ist das die einzige Stelle, an
+ * der der gewaehlte Ausschnitt das Studio ueberhaupt erreicht — vorher
+ * war er gespeichert, aber nirgends sichtbar.
+ *
+ * Pixelwerte nur, wenn die Bildmasse bekannt sind; sonst Prozent. Beides
+ * gerundet — ein Fotograf schneidet nicht auf den Subpixel.
+ */
+export function formatCrop(
+  crop: OrderExportRow["crop"],
+  imageWidth: number | null,
+  imageHeight: number | null
+): string {
+  if (!crop) return "—";
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  if (imageWidth && imageHeight) {
+    const x = Math.round(crop.x * imageWidth);
+    const y = Math.round(crop.y * imageHeight);
+    const w = Math.round(crop.width * imageWidth);
+    const h = Math.round(crop.height * imageHeight);
+    return `${w}×${h} px at (${x}, ${y}) of ${imageWidth}×${imageHeight}`;
+  }
+  return `${pct(crop.width)}×${pct(crop.height)} at (${pct(crop.x)}, ${pct(crop.y)})`;
 }
 
 function csvCell(value: string): string {
@@ -48,6 +81,7 @@ export function buildOrderItemsCsv(
     "Finish",
     "Width (mm)",
     "Height (mm)",
+    "Crop",
     "SKU",
     "Quantity",
     "Unit price",
@@ -67,6 +101,7 @@ export function buildOrderItemsCsv(
         r.finishName ?? "",
         String(r.widthMm),
         String(r.heightMm),
+        formatCrop(r.crop, r.imageWidth, r.imageHeight),
         r.sku ?? "",
         String(r.quantity),
         centsToAmount(r.unitPriceCents),
@@ -192,11 +227,17 @@ export function buildOrderSummaryMarkdown(
   lines.push("");
   lines.push("## Items");
   lines.push("");
-  lines.push("| Photo | Product | Format | Qty | SKU | Unit price | Line total |");
-  lines.push("| --- | --- | --- | --- | --- | --- | --- |");
+  lines.push("| Photo | Product | Format | Crop | Qty | SKU | Unit price | Line total |");
+  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- |");
   for (const r of rows) {
     lines.push(
-      `| ${mdEscape(r.filename)} | ${mdEscape(r.productName)} | ${mdEscape(r.variantName)} (${r.widthMm}×${r.heightMm} mm) | ${r.quantity} | ${r.sku ? mdEscape(r.sku) : "—"} | ${centsToAmount(r.unitPriceCents)} ${header.currency} | ${centsToAmount(r.totalPriceCents)} ${header.currency} |`
+      `| ${mdEscape(r.filename)} | ${mdEscape(r.productName)} | ${mdEscape(r.variantName)} (${r.widthMm}×${r.heightMm} mm) | ${formatCrop(r.crop, r.imageWidth, r.imageHeight)} | ${r.quantity} | ${r.sku ? mdEscape(r.sku) : "—"} | ${centsToAmount(r.unitPriceCents)} ${header.currency} | ${centsToAmount(r.totalPriceCents)} ${header.currency} |`
+    );
+  }
+  if (rows.some((r) => r.crop)) {
+    lines.push("");
+    lines.push(
+      "Crop values are the region the customer selected, measured on the original image (top-left origin). Files in the ZIP are the untouched originals — crop to these values before printing."
     );
   }
   lines.push("");

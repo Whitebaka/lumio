@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildOrderItemsCsv,
   buildOrderSummaryMarkdown,
+  formatCrop,
   isOrderSummaryAddress,
   type OrderExportRow,
   type OrderSummaryHeader,
@@ -20,6 +21,9 @@ function row(overrides: Partial<OrderExportRow> = {}): OrderExportRow {
     quantity: 3,
     unitPriceCents: 35,
     totalPriceCents: 105,
+    crop: null,
+    imageWidth: null,
+    imageHeight: null,
     ...overrides,
   };
 }
@@ -43,6 +47,7 @@ describe("buildOrderItemsCsv", () => {
         "Finish",
         "Width (mm)",
         "Height (mm)",
+        "Crop",
         "SKU",
         "Quantity",
         "Unit price",
@@ -81,11 +86,11 @@ describe("buildOrderItemsCsv", () => {
     const lines = csv.replace(/^\uFEFF/, "").split("\r\n").filter(Boolean);
     expect(lines[1]).not.toContain("null");
     // SKU is the 9th column (Order, File ID, Filename, Product, Format,
-    // Finish, Width, Height, SKU) — empty quoted cell between its
+    // Finish, Width, Height, Crop, SKU) — empty quoted cell between its
     // neighbours confirms it wasn't just omitted, shifting every
     // subsequent column left.
     const cells = lines[1].split(",");
-    expect(cells[8]).toBe('""');
+    expect(cells[9]).toBe('""');
   });
 
   it("renders the selected finish name when present, empty when absent", () => {
@@ -226,5 +231,28 @@ describe("isOrderSummaryAddress", () => {
     expect(
       isOrderSummaryAddress({ street: "x", postalCode: "1", city: "y" }) // no countryCode
     ).toBe(false);
+  });
+});
+
+describe("formatCrop", () => {
+  it("returns a dash when no crop was chosen", () => {
+    expect(formatCrop(null, 6000, 4000)).toBe("—");
+  });
+
+  it("expresses the crop in pixels when image dimensions are known", () => {
+    // Zentrierter 3:2-Ausschnitt aus einem 4:3-Bild — der haeufigste Fall.
+    const crop = { x: 0, y: 0.125, width: 1, height: 0.75 };
+    expect(formatCrop(crop, 4000, 3000)).toBe("4000×2250 px at (0, 375) of 4000×3000");
+  });
+
+  it("falls back to percentages without dimensions", () => {
+    const crop = { x: 0.1, y: 0.2, width: 0.5, height: 0.6 };
+    expect(formatCrop(crop, null, null)).toBe("50%×60% at (10%, 20%)");
+  });
+
+  it("rounds rather than printing sub-pixel values", () => {
+    // 1/3 des Bildes: kein Fotograf schneidet auf 1333.333 Pixel.
+    const crop = { x: 1 / 3, y: 0, width: 1 / 3, height: 1 };
+    expect(formatCrop(crop, 4000, 3000)).toBe("1333×3000 px at (1333, 0) of 4000×3000");
   });
 });

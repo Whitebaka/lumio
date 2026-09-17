@@ -3799,7 +3799,18 @@ export interface PrintOrderDetail {
       finishType: string | null;
       printProduct: { name: string };
     };
-    file: { id: string; originalFilename: string; sha256: string | null };
+    file: {
+      id: string;
+      originalFilename: string;
+      sha256: string | null;
+      /** Pixelmasse des Originals — fuer die Umrechnung des normierten
+       *  Crops in Pixel. null bei Dateien ohne Bild-Metadaten. */
+      width: number | null;
+      height: number | null;
+      /** Signierte URL der web/preview-Rendition, um das Crop-Rechteck
+       *  darueber zu zeichnen. null wenn noch keine Rendition existiert. */
+      previewUrl: string | null;
+    };
   }>;
   shippingMethod: { name: string; priceCents: number } | null;
   events: Array<{
