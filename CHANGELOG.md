@@ -29,6 +29,14 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+## [0.78.1] - 2026-09-17
+
+A pull is enough. Only the main server is affected.
+
+### Fixed
+
+- Adding several photos to the cart at once produced order lines with no crop, while adding one at a time always recorded one. Since v0.78.0 renders only lines that carry a crop, a single order could end up with some files cropped and some not — the ZIP mixed print-ready files with `_UNCROPPED` originals. Bulk lines now get the same centred default the single-photo dialog starts from, computed from each photo's own dimensions. The dialog says so, and points out that ordering a photo on its own is the way to choose the crop yourself. Closes #53.
+
 ## [0.78.0] - 2026-09-17
 
 A pull is enough — the database migrates automatically on start. **Both the main server and the worker nodes need this one, main server first.** Without the worker, paid orders log an unknown job type and print ZIPs contain only `_UNCROPPED` originals.
