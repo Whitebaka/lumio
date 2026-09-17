@@ -29,6 +29,20 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-09-17
+
+A pull is enough — the database migrates automatically on start. **Both the main server and the worker nodes need this one, main server first.** Without the worker, paid orders log an unknown job type and print ZIPs contain only `_UNCROPPED` originals.
+
+### Added
+
+- The crop a customer chooses in the print shop is now applied. When an order becomes paid, the worker renders one cropped, print-ready JPEG per order line — full resolution, converted to sRGB where the original carries a colour profile, transparency flattened to white. The studio's order page links to it next to the crop values, and the order ZIP contains these files instead of the originals, one per line, named after the photo and the print format. Lines without a rendered file (no crop chosen, or rendering failed) are still included as originals with an `_UNCROPPED` suffix, so nothing goes missing quietly. Closes #55 (reported by @manuzzi).
+- Rendering happens at payment rather than at order creation, so an order abandoned at Stripe leaves nothing behind. Offline-invoice orders are paid from the start and render immediately.
+
+### Changed
+
+- The order ZIP for a print order is now built per order line rather than per distinct photo. The same photo ordered twice with different crops yields two files.
+- The lab adapters (Prodigi, Gelato) document where the rendered file lives. They are not wired to any route yet — nothing submits orders to a lab automatically — so this is a note for whoever does that, not a behaviour change.
+
 ## [0.77.2] - 2026-09-17
 
 A pull is enough. Only the main server is affected.

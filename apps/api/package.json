@@ -1,6 +1,6 @@
 {
   "name": "@lumio/api",
-  "version": "0.77.2",
+  "version": "0.78.0",
   "private": true,
   "description": "Lumio API server — Fastify + TypeScript",
   "type": "module",
