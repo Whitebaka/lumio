@@ -16,6 +16,7 @@ import {
   tmplPrintOrderShippedGuest,
 } from "../mail-print.js";
 import { config } from "../../config.js";
+import { enqueue, Queues } from "../queue.js";
 import { studioNotifyEnabled } from "../notifications.js";
 import { tenantMailBranding } from "../notifier.js";
 import {
@@ -357,6 +358,7 @@ export async function createOrder(input: CheckoutInput): Promise<{
     void sendOrderMails(order.id, "paid").catch((err) =>
       logger.warn({ err, orderId: order.id }, "print.order.mail_failed")
     );
+    enqueuePrintRenders(order.id);
     await prisma.printOrderEvent.create({
       data: {
         printOrderId: order.id,
@@ -391,6 +393,28 @@ type Transition =
   | { type: "mark_delivered"; actor: "studio" | "system"; actorUserId?: string }
   | { type: "cancel"; actor: "studio" | "system" | "guest"; actorUserId?: string; reason?: string }
   | { type: "refund"; actor: "studio" | "system"; actorUserId?: string; reason?: string };
+
+
+/**
+ * Druckfertige Crop-Dateien fuer eine Bestellung rendern lassen (#55).
+ *
+ * Wird beim Uebergang nach `paid` angestossen — nicht schon bei
+ * Erstellung, weil eine per Stripe abgebrochene Bestellung sonst Dateien
+ * im Storage hinterliesse, die nie jemand braucht. Bei offline_invoice
+ * ist die Order von Anfang an `paid`, dort also direkt nach dem Anlegen.
+ *
+ * Fire-and-forget wie die Mails daneben: schlaegt der Enqueue fehl, geht
+ * die Bestellung trotzdem durch — das Studio hat dann das Original plus
+ * die Crop-Werte aus der Bestellansicht, wie vor Stufe 2.
+ */
+function enqueuePrintRenders(orderId: string): void {
+  void enqueue(Queues.FILE_PROCESSING, {
+    type: "render_print_item",
+    orderId,
+  }).catch((err) =>
+    logger.warn({ err, orderId }, "print.order.render_enqueue_failed")
+  );
+}
 
 export async function transitionOrder(
   orderId: string,
@@ -498,6 +522,7 @@ export async function transitionOrder(
     void sendOrderMails(orderId, "paid").catch((err) =>
       logger.warn({ err, orderId }, "print.order.mail_failed")
     );
+    enqueuePrintRenders(orderId);
   } else if (t.type === "mark_shipped") {
     void sendOrderMails(orderId, "shipped").catch((err) =>
       logger.warn({ err, orderId }, "print.order.mail_failed")

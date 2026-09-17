@@ -439,7 +439,30 @@ export default function OrderDetailPage({
                       {formatCropText(it.crop, it.file.width, it.file.height)}
                     </span>
                     {" · "}
-                    <span className="text-semantic-warning">{t("orderDetail.cropNotApplied")}</span>
+                    {it.printFileKey ? (
+                      // Gerendert: der Link liefert die geschnittene Datei.
+                      <a
+                        href={api.studioPrintFileUrl(order.id, it.id)}
+                        className="text-accent hover:underline"
+                      >
+                        {t("orderDetail.cropDownload")}
+                      </a>
+                    ) : it.printFileError ? (
+                      // Rendering ist gescheitert — das Studio muss selbst
+                      // schneiden und soll wissen, warum.
+                      <span
+                        className="text-semantic-danger"
+                        title={it.printFileError}
+                      >
+                        {t("orderDetail.cropRenderFailed")}
+                      </span>
+                    ) : (
+                      // Noch nicht gerendert: vor `paid`, oder der Worker
+                      // ist noch nicht durch.
+                      <span className="text-semantic-warning">
+                        {t("orderDetail.cropNotApplied")}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

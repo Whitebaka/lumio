@@ -82,6 +82,12 @@ export type FileProcessingJob =
         | "loginLogo"
         | "loginBackground"
         | "emailLogo";
+    }
+  | {
+      /** Druckfertige Crop-Dateien fuer alle Zeilen einer Print-Order
+       *  rendern (#55). Ein Job pro Bestellung. */
+      type: "render_print_item";
+      orderId: string;
     };
 
 export interface VideoProcessingJob {
@@ -99,7 +105,9 @@ export interface ZipBuildJob {
   label: string;
   accessId?: string;
   zipDownloadId: string;
-  variant?: "original" | "web";
+  variant?: "original" | "web" | "print";
+  /** Nur bei variant "print" (#55). */
+  printOrderId?: string;
   /** Effektive Teil-ZIP-Obergrenze in Bytes (aus Tenant-Setting resolved).
    *  Fehlt sie (Alt-Job), nutzt der Worker seinen ENV-Fallback. */
   partMaxBytes?: number;

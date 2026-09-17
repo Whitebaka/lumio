@@ -1187,6 +1187,7 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
       const order = await prisma.printOrder.findFirst({
         where: { id: req.params.id, tenantId: ctx.tenantId },
         select: {
+          id: true,
           galleryId: true,
           orderNumber: true,
           items: { select: { fileId: true } },
@@ -1194,25 +1195,64 @@ export async function registerPrintShopRoutes(app: FastifyInstance) {
       });
       if (!order) return reply.status(404).send({ error: "not_found" });
 
-      // Multiple lines can point at the same photo (different variants
-      // or, once finish options exist, different finishes) — dedupe so
-      // the ZIP doesn't contain the same file twice.
-      const fileIds = [...new Set(order.items.map((it) => it.fileId))];
-
+      // variant "print" (#55): eine Datei PRO BESTELLZEILE, der gerenderte
+      // Crop statt des Originals. Frueher wurden hier die distinct fileIds
+      // als Originale gepackt — der vom Kunden gewaehlte Ausschnitt kam
+      // nie beim Studio an. Der Worker liest die Zeilen der Bestellung
+      // selbst (fileIds daher null): dieselbe Datei kann zweimal mit
+      // verschiedenem Crop vorkommen, das laesst sich per fileId nicht
+      // ausdruecken. Zeilen ohne gerenderte Datei landen als Original
+      // mit _UNCROPPED-Suffix im ZIP, damit nichts stillschweigend fehlt.
       const zipDownload = await requestZipDownload({
         tenantId: ctx.tenantId,
         galleryId: order.galleryId,
         accessId: null,
         source: "studio",
-        fileIds,
+        fileIds: null,
+        variant: "print",
+        printOrderId: order.id,
         label: `print_order_${order.orderNumber}`,
       });
       return reply.status(202).send({
         id: zipDownload.id,
         status: zipDownload.status,
-        fileCount: fileIds.length,
+        fileCount: order.items.length,
         galleryId: order.galleryId,
       });
+    }
+  );
+
+  // GET /print-shop/orders/:id/items/:itemId/print-file
+  // Redirect auf die gerenderte, zugeschnittene Druckdatei einer Zeile
+  // (#55). 404, wenn (noch) keine existiert — das Frontend zeigt den
+  // Link nur, wenn printFileKey gesetzt ist, der 404 ist also der Fall
+  // "Rendering zwischen Seitenaufruf und Klick geloescht", nicht der
+  // Normalfall. Kein Fallback aufs Original: der Aufrufer will
+  // ausdruecklich die geschnittene Datei, und ein stilles Original an
+  // dieser Stelle waere genau der Fehler, den #55 beschreibt.
+  app.get<{ Params: { id: string; itemId: string } }>(
+    "/print-shop/orders/:id/items/:itemId/print-file",
+    async (req, reply) => {
+      const ctx = await guard(req, reply);
+      if (!ctx) return;
+      const item = await prisma.printOrderItem.findFirst({
+        where: {
+          id: req.params.itemId,
+          printOrderId: req.params.id,
+          printOrder: { tenantId: ctx.tenantId },
+        },
+        select: { printFileKey: true, file: { select: { originalFilename: true } } },
+      });
+      if (!item?.printFileKey) return reply.status(404).send({ error: "not_found" });
+      const fn = item.file.originalFilename;
+      const dot = fn.lastIndexOf(".");
+      const stem = dot > 0 ? fn.slice(0, dot) : fn;
+      const url = await presignGet({
+        key: item.printFileKey,
+        ttlSeconds: 300,
+        responseContentDisposition: `attachment; filename="${stem.replace(/["\\]/g, "_")}_print.jpg"`,
+      });
+      return reply.redirect(url, 302);
     }
   );
 

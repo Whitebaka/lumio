@@ -1955,6 +1955,9 @@ export const api = {
     `${API_URL}/api/v1/galleries/${galleryId}/download/zip/${zipId}?download=1`,
 
   studioFileDownloadUrl: (fileId: string) => `${API_URL}/api/v1/files/${fileId}/download`,
+  /** Gerenderte Druckdatei einer Bestellzeile (Redirect auf S3). */
+  studioPrintFileUrl: (orderId: string, itemId: string) =>
+    `${API_URL}/api/v1/print-shop/orders/${orderId}/items/${itemId}/print-file`,
 
   getStudioZipShareUrl: (galleryId: string, zipId: string) =>
     request<{
@@ -3792,6 +3795,13 @@ export interface PrintOrderDetail {
     finishOptionId: string | null;
     finishOptionName: string | null;
     finishOptionSku: string | null;
+    /** S3-Key der gerenderten, zugeschnittenen Druckdatei (#55). null =
+     *  noch nicht gerendert, kein Crop, oder Rendering fehlgeschlagen
+     *  (dann steht der Grund in printFileError). Das Frontend braucht den
+     *  Key nur als Ja/Nein — der Download laeuft ueber
+     *  studioPrintFileUrl(). */
+    printFileKey: string | null;
+    printFileError: string | null;
     printProductVariant: {
       name: string;
       widthMm: number;

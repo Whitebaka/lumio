@@ -2373,6 +2373,23 @@ model PrintOrderItem {
   finishOptionName      String?
   finishOptionSku       String?
 
+  /// Zugeschnittene, druckfertige Datei fuer diese Zeile (#55). Wird vom
+  /// Worker beim Uebergang nach `paid` erzeugt, wenn `crop` gesetzt ist:
+  /// Original -> Crop in Pixeln -> JPEG in voller Aufloesung, sRGB.
+  /// S3-Key t/<tenant>/print/<orderId>/<itemId>.jpg.
+  ///
+  /// Bewusst HIER und nicht als Rendition: eine Rendition haengt an der
+  /// Datei, ein Crop an der Bestellzeile — dieselbe Datei kann in zwei
+  /// Bestellungen zwei verschiedene Ausschnitte haben.
+  ///
+  /// null = noch nicht gerendert oder kein Crop. export-zip und die
+  /// Lab-Adapter nehmen diese Datei, wenn vorhanden, sonst das Original.
+  printFileKey          String?
+  /// Fehlermeldung, falls das Rendering scheiterte. Dann bleibt
+  /// printFileKey null und das Studio bekommt weiter das Original plus
+  /// die Crop-Werte aus der Bestellansicht.
+  printFileError        String?
+
   quantity              Int      @default(1)
   unitPriceCents        Int
   totalPriceCents       Int
