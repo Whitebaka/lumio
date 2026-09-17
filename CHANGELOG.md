@@ -29,6 +29,14 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-09-17
+
+A pull is enough — the database migrates automatically on start. Only the main server is affected.
+
+### Added
+
+- Print shop: selectable finish options per variant, such as a frame colour. Each option can carry its own SKU and a surcharge, which is added on top of the quantity-break price rather than folded into it — ten black frames and five white ones are still fifteen prints of that format. The chosen option is stored on the order line as a snapshot, so renaming or removing it later doesn't change what a past order says. Imported alongside the catalog, managed on the product page, and shown in the CSV and Markdown exports. Thanks to @manuzzi (#41/#42).
+
 ## [0.76.1] - 2026-09-16
 
 A pull is enough. Only the main server is affected.
