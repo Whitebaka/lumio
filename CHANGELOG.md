@@ -29,6 +29,14 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+## [0.77.2] - 2026-09-17
+
+A pull is enough. Only the main server is affected.
+
+### Fixed
+
+- The crop a customer chooses in the print shop was stored but never shown to anyone. The studio's order page now draws the chosen region over a preview of each photo and states it in pixels, and both the CSV and the Markdown export carry a `Crop` column with the same values. Until the crop is applied to the file itself (next release), it is marked as such right next to the download — the file behind that link is still the untouched original, and the studio crops to the stated values before printing. Reported by @manuzzi (#55).
+
 ## [0.77.1] - 2026-09-17
 
 A pull is enough. Only the main server is affected. **One visible change:** the shape of error bodies from `/api/v1` — see the note below.
