@@ -29,6 +29,18 @@ Changes werden trotzdem klar als solche markiert. Details: `docs/VERSIONING.md`.
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-09-17
+
+A pull is enough — the database migrates automatically on start. Only the main server is affected. **One workflow change if you use offline invoicing** — see below.
+
+### Added
+
+- Orders paid by invoice now wait for confirmation instead of counting as paid the moment they are placed. Somebody at the studio marks them paid once the money has actually arrived, and records a reference — an invoice or receipt number — which is kept on the order and shown in its history. Until then the order sits in "pending payment", the same as an unpaid card order. Thanks to @manuzzi (#35/#36).
+
+### ⚠️ Upgrade notes
+
+- **Invoice orders no longer start as paid.** Previously an order placed with "pay by invoice" was created in the paid state immediately, and the customer and studio mails went out at once. From now on it starts as pending, and the confirmation mails follow when a staff member confirms payment — which also requires entering a reference. Orders already in your database are unaffected; only newly placed ones behave this way. If your studio relies on the old behaviour, note that print files are now rendered at confirmation rather than at order time.
+
 ## [0.78.1] - 2026-09-17
 
 A pull is enough. Only the main server is affected.
