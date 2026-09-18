@@ -5,6 +5,8 @@
 
 :80 {
     encode zstd gzip
+    @dynamic not path /_next/static/*
+    header @dynamic >Cache-Control "no-store"
     header X-Robots-Tag "noindex, nofollow, noarchive"
     header X-Content-Type-Options "nosniff"
     header Referrer-Policy "strict-origin-when-cross-origin"
