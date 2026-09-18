@@ -1,0 +1,31 @@
+# Usage: docker compose -f docker-compose.yml -f docker-compose.nas.yml up -d --build
+services:
+  caddy:
+    build: !reset null
+    image: caddy:2.10-alpine
+    ports: !override
+      - "${NAS_BIND_IP:-192.168.1.99}:${NAS_HTTP_PORT:-8095}:80"
+      - "${NAS_BIND_IP:-192.168.1.99}:${NAS_S3_PORT:-8096}:81"
+    volumes: !override
+      - ./deploy/nas/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+  frontend:
+    ports: !reset []
+  api:
+    ports: !reset []
+  postgres:
+    ports: !reset []
+    volumes: !override
+      - ${NAS_DATA_ROOT:-/mnt/user/appdata/photo-proof-v0}/postgres:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+  redis:
+    ports: !reset []
+    volumes: !override
+      - ${NAS_DATA_ROOT:-/mnt/user/appdata/photo-proof-v0}/redis:/data
+  minio:
+    ports: !reset []
+    environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${PUBLIC_URL}
+    volumes: !override
+      - ${NAS_DATA_ROOT:-/mnt/user/appdata/photo-proof-v0}/minio:/data
