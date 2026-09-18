@@ -7,7 +7,8 @@
 
 - 应用目录：`/mnt/user/appdata/photo-proof-v0/lumio`
 - 网站：`http://192.168.1.99:8095`
-- S3：`http://192.168.1.99:8096`（私有 bucket，浏览器使用签名 URL）
+- S3：与网站同源，`/lumio/*` 转发至私有 bucket，浏览器使用签名 URL。
+  `http://192.168.1.99:8096` 保留为局域网独立 S3 入口。
 - PostgreSQL、Redis、MinIO：位于应用目录的同级目录，持久化在 NAS。
 - 数据库、队列、MinIO 控制台和应用内部端口不映射到宿主机。
 - 不挂载摄影素材目录；仅通过网页上传已缩放、清理 EXIF 的 Proof。
@@ -27,18 +28,29 @@ docker compose logs --tail=100 api worker
 
 ## 接 Cloudflare Tunnel
 
-正式域名和 Tunnel 配置确定后，使用两个 hostname：
+正式域名：`lumio.whitebaka.com`。网站与 S3 使用同一个域名；Caddy 保留
+`/lumio/*` 给当前名为 `lumio` 的 bucket。更改 bucket 名称时须同步此路由。
 
-1. 网站域名 → `http://192.168.1.99:8095`
-2. S3 域名 → `http://192.168.1.99:8096`
+Tunnel 运行令牌保存在仓库外 `../cloudflared/.env`，内容为 `TUNNEL_TOKEN=...`。
+将 `COMPOSE_FILE` 扩展为
+`docker-compose.yml:docker-compose.nas.yml:docker-compose.tunnel.yml`。
 
-也可以把 cloudflared 加入本项目网络，分别指向 `http://caddy:80` 和
-`http://caddy:81`。不要指向 frontend，否则 API、WebSocket 路由会被绕开。
+在 Cloudflare 此 Tunnel 的 Published application routes 中添加：
 
-将 `.env` 的 `PUBLIC_URL` 和 `S3_PUBLIC_URL` 改成对应 HTTPS URL，再执行
-`docker compose up -d`。不需要路由器端口转发。
+- Hostname：`lumio.whitebaka.com`
+- Service：HTTP，`caddy:80`
+- Path：留空
 
-初期使用默认缓存行为，不添加 Cache Everything 或强制图片 Edge TTL。
+不要指向 frontend，否则 API、WebSocket、S3 路由会被绕开。连接器运行令牌
+只能运行 Tunnel，不能创建 DNS 或公开路由，需要在 Cloudflare 控制台配置。
+
+路由和 DNS 生效后，将 `.env` 的 `PUBLIC_URL` 和 `S3_PUBLIC_URL` 都改成
+`https://lumio.whitebaka.com`，再执行 `docker compose up -d`。
+不需要路由器端口转发。Caddy 信任 Docker 内网代理的转发协议头，HTTPS 在
+Cloudflare 终止。
+
+初期仅保留 Next.js 静态资源的缓存，其余同域路由设置 `no-store`，
+不添加 Cache Everything 或强制图片 Edge TTL。
 图片是带签名的私有资源，缓存策略必须验证签名过期、撤销和访问隔离后再设计；
 规划里的 `/proof/` 是示例，并非当前实际路由。HTML、API 和登录不能强制缓存。
 
