@@ -23,6 +23,7 @@ const BCP47: Record<Locale, string> = {
   de: "de-DE",
   it: "it-IT",
   fi: "fi-FI",
+  zh: "zh-CN",
 };
 
 /** Fallback currency when a caller has no explicit one. */

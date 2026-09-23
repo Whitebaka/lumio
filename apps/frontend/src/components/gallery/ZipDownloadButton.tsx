@@ -21,7 +21,7 @@
  * "variant" gehört jetzt zur Bytes-Auswahl.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type ZipStatus } from "@/lib/api";
+import { api, ApiError, type ZipStatus } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useErrorText, useWorkerErrorText} from "@/lib/error-i18n";
 
@@ -64,7 +64,7 @@ export function ZipDownloadButton({
   emphasis = "ghost",
 }: Props) {
   const codeText = useWorkerErrorText();
-  const errText = useErrorText();
+  const errText = useErrorText({ localizeUnknown: true });
   const t = useT();
   const [zipId, setZipId] = useState<string | null>(null);
   const [status, setStatus] = useState<ZipStatus | null>(null);
@@ -89,14 +89,15 @@ export function ZipDownloadButton({
       setZipId(res.id);
       setStatus(res.status);
     } catch (err) {
+      const code = err instanceof ApiError ? err.code ?? "" : "";
       const msg =
         errText(err, t("gallery.requestFailed"));
       setError(
-        msg.includes("no_selection") || msg.includes("no_valid_files")
+        code.includes("no_selection") || code.includes("no_valid_files")
           ? t("gallery.downloadEmpty")
-          : msg.includes("originals_disabled")
+          : code.includes("originals_disabled")
           ? t("gallery.originalsDisabled")
-          : msg.includes("downloads_disabled")
+          : code.includes("downloads_disabled")
           ? t("gallery.downloadDisabled")
           : msg
       );

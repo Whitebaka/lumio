@@ -18,7 +18,8 @@
  * Exits non-zero on any finding, so it can gate a release.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, basename } from "node:path";
+import { loadTsModule, flattenDictionary } from "./i18n-loader.mjs";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const SRC = join(ROOT, "src");
@@ -38,36 +39,10 @@ function walk(dir, out = []) {
   return out;
 }
 
-/**
- * Extract dotted key paths from a dictionary file.
- *
- * Note the quote handling: values appear with double, single AND backtick
- * quoting in these files. An earlier version of this check only matched
- * double quotes and therefore reported two existing keys as missing, which
- * led to duplicates being added. Match all three.
- */
+/** Check the effective dictionaries, including deliberate English fallbacks. */
 function extractKeys(file) {
-  const lines = readFileSync(file, "utf8")
-    .replace(/^import.*$/gm, "")
-    .split("\n");
-  const keys = new Set();
-  const stack = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    const open = line.match(/^(\w+):\s*\{$/);
-    if (open) {
-      stack.push(open[1]);
-      continue;
-    }
-    if (line.startsWith("}")) {
-      stack.pop();
-      continue;
-    }
-    // key: "value"  |  key: 'value'  |  key: `value`  |  key:\n  "value"
-    const leaf = line.match(/^(\w+):\s*["'`]/) || line.match(/^(\w+):$/);
-    if (leaf) keys.add([...stack, leaf[1]].join("."));
-  }
-  return keys;
+  const locale = basename(file, ".ts");
+  return new Set(flattenDictionary(loadTsModule(file)[locale]).keys());
 }
 
 const enKeys = extractKeys(join(I18N_DIR, "en.ts"));

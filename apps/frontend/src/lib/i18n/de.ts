@@ -721,6 +721,7 @@ export const de: LocaleDict = {
   },
 
   gallery: {
+    scrollHint: "Nach unten scrollen",
     locked: "Diese Galerie ist passwortgeschützt.",
     open: "Galerie öffnen",
     password: "Passwort",

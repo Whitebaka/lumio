@@ -466,7 +466,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(
                       title={formatTime(m.t)}
                       className="absolute -translate-x-1/2 top-0 z-10"
                       style={{ left }}
-                      aria-label={`Markierung bei ${formatTime(m.t)}`}
+                      aria-label={t("annotation.videoMarkup.at", { time: formatTime(m.t) })}
                     >
                       <span
                         className={`block rounded-b-sm ${

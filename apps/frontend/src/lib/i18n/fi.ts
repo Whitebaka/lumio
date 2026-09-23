@@ -722,6 +722,7 @@ export const fi = {
   },
 
   gallery: {
+    scrollHint: "Selaa vierittämällä",
     locked: "Tämä galleria on salasanasuojattu.",
     open: "Avaa galleria",
     password: "Salasana",

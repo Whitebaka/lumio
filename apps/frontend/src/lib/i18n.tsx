@@ -23,17 +23,22 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { dictionaries, type Locale, type Dict } from "./i18n/dict";
 import { createFormatters, type Formatters } from "./i18n/format";
+import { resolveLocale, SUPPORTED_LOCALES } from "./i18n/locale";
 
 const LOCALE_COOKIE = "lumio_locale";
 const DEFAULT_LOCALE: Locale = "en";
-const SUPPORTED: Locale[] = ["en", "de", "it", "fi"];
+const SUPPORTED = SUPPORTED_LOCALES;
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(
     new RegExp("(?:^|; )" + name + "=([^;]*)")
   );
-  return match ? decodeURIComponent(match[1]) : null;
+  try {
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
 }
 
 function writeCookie(name: string, value: string) {
@@ -49,15 +54,10 @@ function writeCookie(name: string, value: string) {
 
 function detectLocale(): Locale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
-  const fromCookie = readCookie(LOCALE_COOKIE);
-  if (fromCookie && SUPPORTED.includes(fromCookie as Locale)) {
-    return fromCookie as Locale;
-  }
-  const fromNav = navigator.language?.split("-")[0];
-  if (fromNav && SUPPORTED.includes(fromNav as Locale)) {
-    return fromNav as Locale;
-  }
-  return DEFAULT_LOCALE;
+  return resolveLocale(
+    readCookie(LOCALE_COOKIE),
+    navigator.languages?.length ? navigator.languages : [navigator.language],
+  );
 }
 
 interface I18nContextValue {
@@ -82,7 +82,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   // CSS :lang() selectors all depend on this being accurate.
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.documentElement.lang = locale;
+    document.documentElement.lang = locale === "zh" ? "zh-CN" : locale;
   }, [locale]);
 
   const setLocale = (l: Locale) => {

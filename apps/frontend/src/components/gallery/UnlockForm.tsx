@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api, type PublicGalleryMeta } from "@/lib/api";
+import { api, ApiError, type PublicGalleryMeta } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useErrorText } from "@/lib/error-i18n";
 
@@ -20,7 +20,7 @@ export function UnlockForm({
   requirePassword?: boolean;
   onUnlocked: () => Promise<void> | void;
 }) {
-  const errText = useErrorText();
+  const errText = useErrorText({ localizeUnknown: true });
   const t = useT();
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
@@ -39,11 +39,12 @@ export function UnlockForm({
       });
       await onUnlocked();
     } catch (err) {
+      const code = err instanceof ApiError ? err.code ?? "" : "";
       const msg = errText(err, t("gallery.requestFailed"));
       setError(
-        msg.includes("invalid_password")
+        code.includes("invalid_password")
           ? t("gallery.passwordIncorrect")
-          : msg.includes("password_required")
+          : code.includes("password_required")
           ? t("gallery.passwordRequired")
           : msg
       );

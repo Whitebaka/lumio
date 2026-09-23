@@ -23,7 +23,7 @@
  * `apiError.fooBar` in en/de/it.
  */
 import { ApiError } from "@/lib/api";
-import { useT } from "@/lib/i18n";
+import { useT, useLocale } from "@/lib/i18n";
 
 /** "wrong_current_password" -> "wrongCurrentPassword" */
 function camel(code: string): string {
@@ -46,8 +46,9 @@ export interface ErrorTextResolver {
   (err: unknown, fallback?: string): string;
 }
 
-export function useErrorText(): ErrorTextResolver {
+export function useErrorText(options: { localizeUnknown?: boolean } = {}): ErrorTextResolver {
   const t = useT();
+  const { locale } = useLocale();
   return (err, fallback) => {
     if (err instanceof ApiError && err.code) {
       const key = `apiError.${camel(err.code)}`;
@@ -55,6 +56,9 @@ export function useErrorText(): ErrorTextResolver {
       // t() gibt bei fehlendem Key den Key selbst zurueck.
       if (translated !== key) return translated;
     }
+    // Guest pages must not leak raw English network errors or untranslated
+    // API codes into the Chinese interface. Known codes still win above.
+    if (locale === "zh" && options.localizeUnknown) return fallback ?? t("common.error");
     if (err instanceof Error && err.message) return err.message;
     return fallback ?? t("common.error");
   };
@@ -86,4 +90,3 @@ export function useWorkerErrorText(): (code: string) => string {
     return t("apiError.zipBuildFailed");
   };
 }
-

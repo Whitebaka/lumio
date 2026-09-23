@@ -26,7 +26,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const data = await fetchPublicGallery(slug).catch(() => null);
   if (!data) {
-    return { title: "Galerie · Lumio" };
+    return { title: "Lumio" };
   }
   const g = data.gallery;
 

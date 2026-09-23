@@ -2079,6 +2079,7 @@ function Lightbox({
           {commentsActive && (
             <button
               onClick={() => setShowComments((s) => !s)}
+              aria-expanded={showComments}
               className={`h-8 px-3 rounded text-ui-xs transition-colors duration-motion ${
                 showComments
                   ? "bg-white/15 text-white"
@@ -2142,8 +2143,8 @@ function Lightbox({
       </div>
 
       {/* Main */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex items-center justify-center relative">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        <div className={`flex-1 min-w-0 items-center justify-center relative ${showComments && commentsActive ? "hidden sm:flex" : "flex"}`}>
           <button
             disabled={index === 0}
             onClick={() => onNavigate(index - 1)}
@@ -2441,7 +2442,7 @@ function Lightbox({
               ist (Selection ODER Markieren). */}
           {showHints && interactive && (
             <div
-              className="absolute bottom-16 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full text-ui-xs text-white/70 flex items-center gap-3 pointer-events-none animate-fade-in z-10"
+              className="absolute bottom-16 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full text-ui-xs text-white/70 hidden sm:flex items-center gap-3 whitespace-nowrap pointer-events-none animate-fade-in z-10"
               style={{ transition: "opacity 600ms ease-out" }}
             >
               <span><Kbd>←</Kbd> <Kbd>→</Kbd> {t("gallery.hintNavigate")}</span>
@@ -2466,7 +2467,7 @@ function Lightbox({
 
         {/* Sidebar (Kommentare) */}
         {showComments && commentsActive && (
-          <aside className="w-80 border-l border-white/5 flex flex-col bg-black/50 backdrop-blur-sm text-white">
+          <aside className="w-full sm:w-80 shrink-0 min-h-0 border-l border-white/5 flex flex-col bg-black/50 backdrop-blur-sm text-white">
             <div className="px-4 py-3 border-b border-white/5 text-ui-sm font-medium text-white/90">
               {t("gallery.comments")}
             </div>
@@ -2603,7 +2604,7 @@ function SelectionPill({
       <span className="w-px h-6 bg-white/15 mx-1" aria-hidden />
       <button
         onClick={onToggleLike}
-        className={`h-9 px-4 rounded-full border transition-all duration-motion ease-out flex items-center gap-2 ${
+        className={`h-9 px-4 shrink-0 whitespace-nowrap rounded-full border transition-all duration-motion ease-out flex items-center gap-2 ${
           liked
             ? "bg-amber-400 border-amber-300 text-neutral-950"
             : "border-white/20 text-white/80 hover:text-white hover:border-white/50"

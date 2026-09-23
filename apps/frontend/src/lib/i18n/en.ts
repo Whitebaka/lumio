@@ -722,6 +722,7 @@ export const en = {
   },
 
   gallery: {
+    scrollHint: "Scroll to browse",
     locked: "This gallery is password-protected.",
     open: "Open gallery",
     password: "Password",

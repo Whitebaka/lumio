@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   api,
+  ApiError,
   type PublicGalleryMeta,
   type PublicFile,
   type MySelection,
@@ -32,7 +33,7 @@ export default function PublicGalleryPage() {
 }
 
 function PublicGalleryInner() {
-  const errText = useErrorText();
+  const errText = useErrorText({ localizeUnknown: true });
   const params = useParams<{ slug: string }>();
   const search = useSearchParams();
   const slug = params.slug;
@@ -118,7 +119,7 @@ function PublicGalleryInner() {
             // gültigen Link → eigene Hinweis-Seite. Link mit eigenem
             // Passwort → Passwortformular. Sonst (ungültiges/fehlendes
             // Token bei öffentlicher Galerie) anonym weiter.
-            const msg = errText(e, "");
+            const msg = e instanceof ApiError ? e.code ?? "" : "";
             if (msg.includes("link_expired")) {
               if (!cancelled) setAccessState("expired");
             } else if (msg.includes("access_required")) {
@@ -141,7 +142,7 @@ function PublicGalleryInner() {
           // offline (gesperrt, archiviert oder Loeschung beantragt).
           // Bewusst die gleiche neutrale Meldung wie bei not_found —
           // Besucher muessen nicht erfahren, warum das Studio weg ist.
-          const msg = errText(err, "");
+          const msg = err instanceof ApiError ? err.code ?? "" : "";
           const neutral =
             msg.includes("not_found") ||
             msg.includes("tenant_unavailable") ||

@@ -5,6 +5,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { api, type Branding } from "@/lib/api";
 import { useT, useLocale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/dict";
+import { LOCALE_LABELS } from "@/lib/i18n/locale";
 import { bunnyFontsCssUrl, resolveFontStack } from "@/lib/fonts";
 
 /**
@@ -389,11 +391,11 @@ function LocaleSwitcher({
   supported,
 }: {
   locale: string;
-  setLocale: (l: "en" | "de" | "it" | "fi") => void;
-  supported: readonly ("en" | "de" | "it" | "fi")[];
+  setLocale: (l: Locale) => void;
+  supported: readonly Locale[];
 }) {
   return (
-    <div className="flex items-center gap-1 text-[11px]">
+    <div className="flex flex-wrap items-center gap-1 text-[11px]">
       {supported.map((l, i) => (
         <span key={l} className="flex items-center gap-1">
           {i > 0 && <span className="opacity-30">·</span>}
@@ -407,7 +409,7 @@ function LocaleSwitcher({
             }
             aria-current={l === locale ? "true" : undefined}
           >
-            {l === "de" ? "Deutsch" : l === "it" ? "Italiano" : l === "fi" ? "Suomi" : "English"}
+            {LOCALE_LABELS[l]}
           </button>
         </span>
       ))}

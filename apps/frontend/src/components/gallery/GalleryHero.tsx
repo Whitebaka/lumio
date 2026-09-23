@@ -29,6 +29,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { PublicGalleryMeta } from "@/lib/api";
 import { heroTextColor } from "@/lib/color";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   meta: PublicGalleryMeta;
@@ -153,6 +154,7 @@ function MinimalHero({ meta, children }: Props) {
 // ---------------------------------------------------------------------------
 // Vollbild-Hero. Inhalt zentriert in der Mitte. Dezenter Scroll-Hint unten.
 function SplashHero({ meta, children }: Props) {
+  const t = useT();
   const h = meta.header;
   const hasHeroImage = !!h.heroImageUrl;
   const hasOverlay = hasHeroImage && !!h.overlayColor;
@@ -199,7 +201,7 @@ function SplashHero({ meta, children }: Props) {
       {(hasHeroImage || hasBgColor) && (
         <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
           <div className="text-ui-xs uppercase tracking-[0.2em] opacity-60 flex flex-col items-center gap-1.5">
-            <span>scroll</span>
+            <span>{t("gallery.scrollHint")}</span>
             <svg
               viewBox="0 0 24 24"
               className="w-4 h-4 animate-bounce"

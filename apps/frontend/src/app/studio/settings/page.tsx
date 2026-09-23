@@ -11,6 +11,7 @@ import { MotionSection } from "@/components/studio/MotionSection";
 import { NotificationSettings } from "@/components/studio/NotificationSettings";
 import { PageHeader } from "@/components/studio/PageHeader";
 import { useT, useLocale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/dict";
 import { useErrorText } from "@/lib/error-i18n";
 import { useConfirm } from "@/components/ui/dialogs";
 
@@ -589,7 +590,7 @@ export default function StudioSettingsPage() {
           <select
             value={locale}
             onChange={(e) => {
-              const next = e.target.value as "en" | "de" | "it" | "fi";
+              const next = e.target.value as Locale;
               setLocale(next);
               // Write-through fuer den Mailversand. Die Oberflaeche haengt
               // weiterhin am Cookie — dieser Wert entscheidet nur, in
@@ -597,7 +598,8 @@ export default function StudioSettingsPage() {
               // entstehen serverseitig, wenn kein Browser beteiligt ist.
               // Best-effort: ein Fehler darf die Umstellung nicht
               // blockieren, das Cookie ist bereits gesetzt.
-              void api.updateMyMailLocale(next).catch(() => {});
+              // Chinese is currently a UI locale only; preserve the mail preference.
+              if (next !== "zh") void api.updateMyMailLocale(next).catch(() => {});
             }}
             className="text-sm rounded-md border border-line-subtle px-2 py-1 bg-surface-raised"
           >
@@ -605,6 +607,7 @@ export default function StudioSettingsPage() {
             <option value="de">Deutsch</option>
             <option value="it">Italiano</option>
             <option value="fi">Suomi</option>
+            <option value="zh">简体中文</option>
           </select>
         </section>
 
